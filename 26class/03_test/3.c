@@ -5,7 +5,7 @@
 #define MAXSTUDENT 1005
 typedef struct{
     int mark;
-    char name[10];
+    char name[MAXNAME];
     int score;
 }Student;
 
@@ -13,13 +13,17 @@ int main()
 {
     Student stuA[MAXSTUDENT],stuB[MAXSTUDENT],stu[2*MAXSTUDENT];
     int countA=0,countB=0;
-    while(scanf("%d %s %d",&stuA[countA].mark,stuA[countA].name,&stuA[countA].score)==3)
+    char buf[100];
+    while(fgets(buf,100,stdin))
     {
+        if(buf[0]=='\n') break;
+        sscanf(buf,"%d %s %d",&stuA[countA].mark, stuA[countA].name, &stuA[countA].score);
         countA++;
     }
-    getchar();
-    while(scanf("%d %s %d",&stuB[countB].mark,stuB[countB].name,&stuB[countB].score)==3)
+    while(fgets(buf, sizeof(buf), stdin))
     {
+        if(buf[0]=='\n') break;
+        sscanf(buf, "%d %s %d", &stuB[countB].mark, stuB[countB].name, &stuB[countB].score);
         countB++;
     }
     int i=0,j=0,k=0;
@@ -35,17 +39,11 @@ int main()
             j++;
         }
     }
-    if(i<countA)
-    {
-        for(i;i<countA;i++) stu[k++] = stuA[i];
-    }
-    if(j<countB)
-    {
-        for(j;j<countB;j++) stu[k++] = stuB[j];
-    }
+    while(i<countA) stu[k++] = stuA[i++];
+    while(j<countB) stu[k++] = stuB[j++];
 
-    for(int m=0;k<countA+countB;k++)
+    for(int m=0;m<k;m++)
     {
-        printf("%d %s %d\n",stu[i].mark,stu[i].name,stu[i].score);
+        printf("%d %s %d\n",stu[m].mark,stu[m].name,stu[m].score);
     }
 }
