@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>巴别塔之歌：自然语言到代码的翻译</title>
+    <!-- 引入 Highlight.js 样式和脚本 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>hljs.highlightAll();</script>
+    <style>
+        :root {
+            --primary-color: #0F52BA;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-color: #202124;
+            --secondary-text: #5f6368;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+        }
+
+        /* 幻灯片容器 */
+        .reveal {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .slide {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            opacity: 0;
+            visibility: hidden;
+            /* transition: all 0.5s ease; */
+            /* transform: translateY(20px);  */
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            /* transform: translateY(0); */
+        }
+
+        /* 标题样式 */
+        h1 { color: var(--primary-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; }
+        h2 { color: var(--primary-color); margin-top: 0; }
+        
+        /* 内容样式 */
+        .content { font-size: 1.8rem; line-height: 1.6; flex-grow: 1; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 15px; padding-left: 25px; position: relative; }
+        li::before { content: "▹"; position: absolute; left: 0; color: var(--primary-color); }
+        .sub-list li { margin-bottom: 8px; }
+
+        .container {
+            display: flex;
+            gap: 10%;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        /* 代码块样式 */
+        pre {
+            background: #f8f9fa;
+            color: #202124;
+            padding: 15px;
+            width: max-content;
+            max-width: 100%;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 1rem;
+            border-left: 4px solid var(--primary-color);
+        }
+        pre code {
+            /* 覆盖 highlight.js 自带的背景，统一使用原有的设计 */
+            background: transparent !important;
+            padding: 0 !important;
+            font-family: inherit;
+            white-space: pre;
+        }
+
+        /* 控制按钮 */
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            right: 50px;
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: 0.3s;
+        }
+
+        button:hover { background: rgba(15, 82, 186, 0.1); }
+        button:disabled { border-color: #444; color: #444; cursor: not-allowed; }
+
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background: rgba(0,0,0,0.1);
+            cursor: pointer;
+            z-index: 1000;
+            transition: height 0.2s;
+        }
+        .progress-container:hover {
+            height: 16px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: var(--primary-color);
+            transition: width 0.1s linear;
+            pointer-events: none;
+        }
+        
+        .citation {
+            font-size: 0.8rem;
+            color: var(--secondary-text);
+            vertical-align: super;
+        }
+
+        /* 打印/导出 PDF 样式 */
+        @media print {
+            @page {
+                size: A4 landscape;
+                /* margin: 0; */
+            }
+
+            body, html {
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                background-color: var(--bg-color) !important;
+            }
+
+            .reveal {
+                display: block !important;
+                position: static !important;
+                width: 100% !important;
+                height: auto !important;
+            }
+
+            .slide {
+                position: relative !important;
+                width: 100% !important;
+                height: 100vh !important; 
+                margin: 0 !important;
+                padding: 10vh 10vw !important; 
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                transform: none !important;
+                box-shadow: none !important;
+                page-break-after: always !important; 
+                break-inside: avoid !important;
+                box-sizing: border-box !important;
+                border-radius: 0 !important;
+                top: 0 !important;
+                left: 0 !important;
+            }
+
+            .slide > .content {
+                width: 100% !important;
+            }
+
+            /* 隐藏底部控制栏和进度条 */
+            .controls, .progress-container {
+                display: none !important;
+            }
+
+            /* 强制要求浏览器打印背景色和颜色 */
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="reveal">
+    <div class="slide active">
+        <h1 style="font-size: 3.5rem; margin-top: 100px;">巴别塔之歌:<br>自然语言到代码的翻译</h1>
+        <p style="font-size: 1.8rem; color: var(--secondary-text);">以线性结构为例</p>
+        <div style="margin-top: auto; font-size: 1.2rem; color: var(--primary-color);">
+            施冠宇 | 2026.03.29
+        </div>
+    </div>
+
+    <!-- 回顾 -->
+    <div class="slide">
+        <div class="content" style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <h1 style="font-size: 3.5rem; text-align: center; border: none; margin: 0;">回顾</h1>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c0">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">从计概到数算</h3>
+            <p>过渡期：</p>
+            <ul>
+                <li>语言：C or C++</li>
+                <li>语法：常见操作是否熟悉（输入输出/分支循环/函数调用）</li>
+                <li>算法：分治、贪心、递推、回溯</li>
+                <li>工具：LLM、DEBUG、IDE</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c0">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">本阶段学习地图</h3>
+            <p>四个核心：</p>
+            <ul>
+                <li>理解问题：将复杂行为拆分成最小动作</li>
+                <li>找到模型：利用学过的方法转化问题</li>
+                <li>理解实现：将伪代码翻译成代码</li>
+                <li>行为优化：设计、实现、测试的闭环</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Vol 01 -->
+    <div class="slide">
+        <div class="content" style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <h1 style="font-size: 3.5rem; text-align: center; border: none; margin: 0;">
+                01 从说人话开始：结构分析与最小动作<br>
+                <!-- <span style="font-size: 2rem; color: var(--secondary-text); font-weight: normal;">结构化的解析与代码化</span> -->
+            </h1>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">自然语言分析：原理拆分</h3>
+            <p>写代码之前先把问题说清楚</p>
+            <p>问题想的很清楚、原理理解的也很透彻，可是实现起来却：…</p>
+         </div>
+    </div>
+
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">自然语言分析：原理拆分</h3>
+            <p>写代码之前先把问题说清楚</p>
+            <p>问题想的很清楚、原理理解的也很透彻，可是实现起来却：…</p>
+            <p>忽视语法细节，困在输入输出处理</p>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">自然语言分析：原理拆分</h3>
+            <p>写代码之前先把问题说清楚</p>
+            <p>问题想的很清楚、原理理解的也很透彻，可是实现起来却：…</p>
+            <p>忽视语法细节，困在输入输出处理</p>
+            <p>忽略边界条件，特殊样例考虑不周</p>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">自然语言分析：原理拆分</h3>
+            <p>写代码之前先把问题说清楚</p>
+            <p>问题想的很清楚、原理理解的也很透彻，可是实现起来却：…</p>
+            <p>忽视语法细节，困在输入输出处理</p>
+            <p>忽略边界条件，特殊样例考虑不周</p>
+            <p>结构嵌套错误，不能按照预期运行</p>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">自然语言分析：原理拆分</h3>
+            <p>写代码之前先把问题说清楚</p>
+            <p>问题想的很清楚、原理理解的也很透彻，可是实现起来却：…</p>
+            <p>忽视语法细节，困在输入输出处理</p>
+            <p>忽略边界条件，特殊样例考虑不周</p>
+            <p>结构嵌套错误，不能按照预期运行</p>
+            <p>设计思路有误，不可简单照搬模板</p>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">自然语言分析：原理拆分</h3>
+            <p>写代码之前先把问题说清楚</p>
+            <p>问题想的很清楚、原理理解的也很透彻，可是实现起来却：…</p>
+            <p>忽视语法细节，困在输入输出处理</p>
+            <p>忽略边界条件，特殊样例考虑不周</p>
+            <p>结构嵌套错误，不能按照预期运行</p>
+            <p>设计思路有误，不可简单照搬模板</p>
+            <p>人脑更擅长处理自然语言而不是语法细节，直接写代码容易陷入语法错误和细节泥潭。而结构分析可以把复杂问题拆成简单步骤</p>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">不求甚解：认识伪代码</h3>
+            <p>问题：计算一个班级的平均分</p>
+            <p>自然语言描述：输入是一组学生成绩，处理是把所有成绩加起来再除以总人数，输出是平均分</p>
+
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">不求甚解：认识伪代码</h3>
+            <p>问题：计算一个班级的平均分</p>
+            <p>自然语言描述：输入是一组学生成绩，处理是把所有成绩加起来再除以总人数，输出是平均分</p>
+
+            <pre><code class="language-plaintext">初始化：总分、每个学生的信息、学生总人数</code></code></code></pre>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">不求甚解：认识伪代码</h3>
+            <p>问题：计算一个班级的平均分</p>
+            <p>自然语言描述：输入是一组学生成绩，处理是把所有成绩加起来再除以总人数，输出是平均分</p>
+
+            <pre><code class="language-plaintext">初始化：总分、每个学生的信息、学生总人数</code></code></code></pre>
+            <pre><code class="language-plaintext">处理输入：输入格式、输入的数量、终止条件</code></code></code></pre>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">不求甚解：认识伪代码</h3>
+            <p>问题：计算一个班级的平均分</p>
+            <p>自然语言描述：输入是一组学生成绩，处理是把所有成绩加起来再除以总人数，输出是平均分</p>
+
+            <pre><code class="language-plaintext">初始化：总分、每个学生的信息、学生总人数</code></code></code></pre>
+            <pre><code class="language-plaintext">处理输入：输入格式、输入的数量、终止条件</code></code></code></pre>
+            <pre><code class="language-plaintext">维护变量：输入是否合法、是否存在相互影响、更新公式</code></code></code></pre>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">不求甚解：认识伪代码</h3>
+            <p>问题：计算一个班级的平均分</p>
+            <p>自然语言描述：输入是一组学生成绩，处理是把所有成绩加起来再除以总人数，输出是平均分</p>
+
+            <pre><code class="language-plaintext">初始化：总分、每个学生的信息、学生总人数</code></code></code></pre>
+            <pre><code class="language-plaintext">处理输入：输入格式、输入的数量、终止条件</code></code></code></pre>
+            <pre><code class="language-plaintext">维护变量：输入是否合法、是否存在相互影响、更新公式</code></code></code></pre>
+            <pre><code class="language-plaintext">总结输出：计算输出、调整格式</code></code></code></pre>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">伪代码示例与练习</h3>
+            <p></p>            
+            <div style="text-align: center;"> <!-- 加上这层可以居中图片 -->
+                <img src="lec2/pseudocode.png" alt="示意图" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px;">
+            </div>
+            <span class="citation">[cite: Joint_Offloading_and_Resource_Allocation_for_Hybrid_Cloud_and_Edge_Computing_in_SAGINs_A_Decision_Assisted_Hybrid_Action_Space_Deep_Reinforcement_Learning_Approach]</span>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">化整为零：拆解最小动作</h3>
+            <p>最小动作：不需要再继续拆分的基本操作，相对于问题而定义</p>
+            <ul>
+                <li>链表：创建节点、删除节点、寻找下一个节点、取节点值</li>
+                <li>栈/队列：出、入、观察顶层元素</li>
+                <li>字符串：字符位比较、拼接、查找</li>
+            </ul>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">最小动作集：定义节点</h3>
+            <p></p>
+            <div class="container">
+            <pre><code class="language-cpp">struct Node {
+        int val;
+        Node* next;
+    };
+    int main() {
+        Node* head = NULL;
+        ...
+    }</code></pre>
+    <pre><code class="language-cpp">int main() {
+        struct Node {
+            int val;
+            Node* next;
+        };
+        Node* head = NULL;
+        ...
+    }</code></pre></div>
+            <div class="container">
+            <pre><code class="language-cpp">struct Node {
+        int val;
+        struct Node* next;
+    };
+    int main() {
+        struct Node* head = NULL;
+        ...
+    }</code></pre>
+            <pre><code class="language-cpp">typedef struct Node {
+    int val;
+    struct Node* next;
+} Node;
+    int main() {
+        Node* head = NULL;
+        ...
+    }</code></pre>
+            </div>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">最小动作集：创建节点</h3>
+            <p></p>
+                        <div class="container">
+            <pre><code class="language-cpp">struct Node {
+        int val;
+        Node* next;
+    };
+    int main() {
+        Node* head = NULL;
+        ...
+    }</code></pre>
+    <pre><code class="language-cpp">int main() {
+        struct Node {
+            int val;
+            Node* next;
+        };
+        Node* head = NULL;
+        ...
+    }</code></pre></div>
+            <div class="container">
+            <pre><code class="language-cpp">struct Node {
+        int val;
+        struct Node* next;
+    };
+    int main() {
+        struct Node* head = NULL;
+        ...
+    }</code></pre>
+            <pre><code class="language-cpp">typedef struct Node {
+    int val;
+    struct Node* next;
+} Node;
+    int main() {
+        Node* head = NULL;
+        ...
+    }</code></pre>
+            </div>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">最小动作集：创建节点链表</h3>
+            <p></p>                        <div class="container">
+            <pre><code class="language-cpp">Node* head = new Node;
+head->val = 1;
+head->next = nullptr;
+
+Node* cur = head;
+
+Node* newNode = new Node;
+newNode->val = 2;
+newNode->next = nullptr;
+
+cur->next = newNode;
+cur = newNode;   // 向后移动</code></pre>
+
+            </div>
+        </div>
+    </div>    
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">最小动作集：创建节点链表</h3>
+            <p></p>                        
+            <div class="container">
+    <pre><code class="language-cpp">int n = 5;                   // 节点数量
+Node* head = new Node;        // 创建头节点
+head->val = 1;                
+head->next = nullptr;
+
+Node* cur = head;             // cur 指向当前尾节点
+
+for (int i = 2; i <= n; i++) {
+    Node* newNode = new Node; // 创建新节点
+    newNode->val = i;         
+    newNode->next = nullptr;  
+
+    cur->next = newNode;      // 连接到链表
+    cur = newNode;            // 移动尾指针
+}</code></pre>
+            <pre><code class="language-cpp">int n = 5;
+Node* head = new Node;        
+head->val = 1;
+head->next = nullptr;
+
+Node* cur = head;             
+int i = 2;
+
+while (i <= n) {
+    Node* newNode = new Node;
+    newNode->val = i;
+    newNode->next = nullptr;
+
+    cur->next = newNode;
+    cur = newNode;
+
+    i++;                      // 计数器更新
+}</code></pre>
+            </div>
+        </div>
+    </div>
+        <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">最小动作集：创建节点链表</h3>
+            <p></p>                        <div class="container">
+            <pre><code class="language-cpp">// 递归函数：创建从 start 到 n 的链表
+Node* createList(int start, int n) {
+    if (start > n) {
+        return nullptr;           // 终止条件（循环机制是否可以更换？）
+    }
+    Node* node = new Node;        // 创建节点
+    node->val = start;            // 赋值
+    node->next = createList(start + 1, n);  // 递归创建下一个节点
+
+    return node;                  // 返回当前节点
+}
+
+int main() {
+    int n = 5;
+    Node* head = createList(1, n);
+    return 0;
+}</code></pre>
+
+            </div>
+        </div>
+    </div>   
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">最小动作集：在链表中移动</h3>
+            <p></p>
+                        <div class="container">
+    <pre><code class="language-cpp">Node* cur = head;           // 指向头节点
+while (cur != nullptr) {    // 检查是否到达链表末尾
+    std::cout << cur->val << " ";  // 访问节点数据
+    cur = cur->next;        // 移动到下一个节点
+}</code></pre>
+            <pre><code class="language-cpp">for (Node* cur = head; cur != nullptr; cur = cur->next) {
+    std::cout << cur->val << " ";
+}</code></pre>
+            </div>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">最小动作集：链表新增节点</h3>
+            <p></p>
+                        <div class="container">
+            <pre><code class="language-cpp">//头部新增
+Node* newNode = new Node;
+newNode->val = 5;
+newNode->next = head;     // 新节点 next 指向原头节点
+head = newNode;           // 更新头指针</code></pre>
+            <pre><code class="language-cpp">//中部新增
+Node* newNode = new Node;
+newNode->val = 15;
+
+Node* cur = head;
+for (int i = 1; i < k - 1; i++) {
+    cur = cur->next;       // 移动到前驱节点
+}
+
+newNode->next = cur->next; // 新节点指向后继节点
+cur->next = newNode;       // 前驱节点指向新节点</code></pre>
+    <pre><code class="language-cpp">//尾部新增
+Node* newNode = new Node;  // 创建节点
+newNode->val = 10;         // 赋值
+newNode->next = nullptr;   // 初始化 next
+
+Node* cur = head;
+for (int i = 1; i < n ; i++) {
+    cur = cur->next;       // 移动到前驱节点
+}
+cur->next = newNode;       // 前驱节点 next 指向新节点
+cur = newNode;             // 可选：移动尾指针</code></pre>
+            </div>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">最小动作集：链表删除节点</h3>
+            <p></p>
+                        <div class="container">
+            <pre><code class="language-cpp">//头部删除
+Node* temp = head;       // 保存头节点指针
+head = head->next;       // 更新头指针
+delete temp;             // 释放原头节点 </code></pre>
+            <pre><code class="language-cpp">//中部删除
+Node* cur = head;
+for (int i = 1; i < k - 1; i++) {
+    cur = cur->next;      // 移动到前驱节点
+}
+
+Node* temp = cur->next;  // 保存要删除的节点
+cur->next = temp->next;  // 前驱节点指向后继节点
+delete temp;             // 释放内存</code></pre>
+            <pre><code class="language-cpp">//尾部删除
+Node* cur = head;
+while (cur->next->next != nullptr) {
+    cur = cur->next;       // 移动到倒数第二个节点
+}
+
+Node* temp = cur->next;    // 保存尾节点
+cur->next = nullptr;       // 前驱 next 置空
+delete temp;               // 释放尾节点</code></pre>
+            </div>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c1">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">随堂练习：链表反转</h3>
+            <p></p>
+
+                        <div class="container">
+            <pre><code class="language-cpp">struct Node {
+    int val;
+    Node* next;
+};
+
+Node* reverseList(Node* head) {
+    Node* prev = /*__________*/;     // 初始化前驱节点
+    Node* curr = /*__________*/;     // 初始化当前节点
+    while (curr != nullptr) {
+        Node* nextTemp = /*__________*/;   // 保存下一个节点
+        curr->next = /*__________*/;       // 反转指针
+        prev = /*__________*/;             // 前驱节点向前移动
+        curr = /*__________*/;             // 当前节点向前移动
+    }
+    return /*__________*/;                 // 返回新头节点
+}
+
+int main() {
+...
+}
+            </code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- 大章 2 -->
+    <div class="slide">
+        <div class="content" style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <h1 style="font-size: 3.5rem; text-align: center; border: none; margin: 0;">
+                02 转译的损耗：常见理解歧义<br>
+                <!-- <span style="font-size: 2rem; color: var(--secondary-text); font-weight: normal;">常见理解歧义</span> -->
+            </h1>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c2">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">天平倾斜：如何理解等于号</h3>
+            <p>这里的 = 是“赋值”还是“比较”？
+它发生了什么？
+</p>
+    <pre><code class="language-cpp">prev = curr;
+curr = nextTemp;</code></pre>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c2">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">天平倾斜：如何理解等于号</h3>
+            <p></p>
+    <pre><code class="language-cpp">prev = curr;
+curr = nextTemp;</code></pre>
+    <ul>
+	<li>prev = curr;
+	<li>人脑直观理解：把 curr 的值给 prev
+	<li>计算机层面：prev 的内存地址保存 curr 指向的节点地址
+	<li>关键点：这是指针赋值，不复制节点内容，只复制地址
+	<li>curr = nextTemp;
+	<li>不是“curr 变成了下一个节点”，而是指针移动
+    </ul>
+最小动作拆解
+	1.	找到左边变量的存储位置
+	2.	计算右边表达式的值
+	3.	写入左边位置
+        </div>
+    </div>
+    <div class="slide" data-chapter="c2">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">天平倾斜：如何理解等于号</h3>
+            <p></p>
+    <pre><code class="language-cpp">prev = curr;
+curr = nextTemp;</code></pre>
+最小动作拆解
+    <ul>
+	<li>1.	找到左边变量的存储位置
+	<li>2.	计算右边表达式的值
+	<li>3.	写入左边位置
+	<li>关键点：房子模型
+    </ul>
+        </div>
+    </div>    <div class="slide" data-chapter="c2">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">天平倾斜：如何理解等于号</h3>
+            <p></p>
+    <pre><code class="language-cpp">prev = curr;
+curr = nextTemp;</code></pre>
+
+    <ul>
+	<li>1.	prev = curr; 会复制整个节点？ → 实际只是指针复制
+	<li>2.	curr = nextTemp; 改变了原链表？ → 实际只是移动了本地指针
+	<li>3.	把 = 理解成数学等号？ → 并非“相等判断”，而是“赋值操作”
+    </ul>
+
+        </div>
+    </div>
+    <div class="slide" data-chapter="c2">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">流式执行：阻塞式赋值的陷阱</h3>
+            <p>可以更改这几行的顺序吗？</p>
+                <pre><code class="language-cpp">Node* nextTemp = curr->next;
+curr->next = prev;
+prev = curr;
+curr = nextTemp;</code></pre>
+        </div>
+    </div>
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">流式执行：阻塞式赋值的陷阱</h3>
+        <p></p>
+<pre><code class="language-cpp">Node* nextTemp = curr->next;
+curr->next = prev;
+prev = curr;
+curr = nextTemp;</code></pre>
+
+    <ul>
+        <li>1.	必须先保存下一节点指针 → nextTemp = curr->next，否则信息丢失
+        <li>2.	指针反转 curr->next = prev → 顺序敏感
+        <li>3.	prev = curr; 移动前驱指针，依赖 curr 的当前值
+        <li>4.	curr = nextTemp; 移动当前指针，必须在前面步骤之后执行
+        <li>⚠️ 如果改变顺序 → 链表破坏、指针指向错误
+    </ul>
+
+    </div>
+</div>
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">流式执行：阻塞式赋值的陷阱</h3>
+        <p>阻塞式赋值</p>
+    <ul>
+        <li>代码必须按照特定顺序执行，每一步都依赖前一步的结果
+        <li>执行顺序按照照代码书写的顺序进行，不能随意调整
+        <li>如果中途有函数调用关系，则优先执行函数内部的代码，完成后再继续当前函数的下一行
+        <li>在进入循环/递归时，必须保证每次迭代/调用的状态正确，不能因为顺序错误导致状态混乱
+    </ul>
+
+    </div>
+</div>
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">拓展：非阻塞式赋值</h3>
+        <p></p>
+<pre><code class="language-verilog">// Verilog 非阻塞赋值示例
+always @(posedge clk) begin
+    prev <= curr;
+    curr <= nextTemp;
+end</code></pre>
+
+    <ul>
+        <li>1.	非阻塞赋值 (<=)：所有右值同时读取，左值同时更新
+        <li>2.	顺序不会阻塞，可以并行理解多个赋值
+        <li>3.	与阻塞赋值 (=) 对比：阻塞赋值必须严格顺序执行
+        <li>4.	可以理解为“先看右边值，再同时更新所有左边”
+    </ul>
+
+    </div>
+</div>
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">流式执行：阻塞式赋值的陷阱</h3>
+        <p>阻塞式赋值</p>
+    <ul>
+        <li>代码必须按照特定顺序执行，每一步都依赖前一步的结果
+        <li>执行顺序按照照代码书写的顺序进行，不能随意调整
+        <li>如果中途有函数调用关系，则优先执行函数内部的代码，完成后再继续当前函数的下一行
+        <li>在进入循环/递归时，必须保证每次迭代/调用的状态正确，不能因为顺序错误导致状态混乱
+    </ul>
+
+    </div>
+</div>
+    <div class="slide" data-chapter="c2">
+        <div class="content">
+            <h3 style="color: var(--primary-color);">循环新生：迭代赋值分析</h3>
+            <p>正确循环的条件</p> 
+            <ul>
+                <li>a. 初始化变量状态正确
+                <li>b. 每次迭代右值使用前已经保存
+                <li>c. 左值更新后能满足下一次迭代的需要
+                <li>d. 循环终止条件清晰且可达
+            </ul>
+        </div>
+    </div>
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">循环新生：迭代赋值分析</h3>
+        <p>泛化理解循环设计：只要连续两次迭代之间变量衔接正确，整个循环就正确。</p>
+
+    <ul>
+        <li>1.	循环本质 → 重复执行一组动作，每次迭代处理局部最小动作
+        <li>2.	变量衔接原则 → 检查每次迭代结束时变量状态能否满足下一次迭代的初始要求
+        <li>3.	抽象方法 → 可以连续观察两次迭代，验证左值更新、右值读取、依赖顺序是否正确
+    </ul>
+
+    </div>
+</div>
+
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">例题：多项式相加（链表）</h3>
+        <p>将两个无序多项式相加，要求合并同类项并按幂次降序输出。</p>
+
+<pre><code class="language-cpp">// 输入形式（示例）
+2 20  -1 17  5 9  -7 7  16 5  10 4  22 2  -15 0 [结束标志]
+2 19 7 7 3 17 4 4 15 10 -10 5 13 2 -7 0 [结束标志]
+// 输出形式
+[a b]的序列 表示 a * x^b + ...</code></pre>
+
+    <ul>
+        <li>核心问题：“逐项处理 + 排序 + 合并同类项”
+        <li>每次循环只做“最小动作”：处理一个项，并保证结果可被下一次继续使用
+    </ul>
+
+        </div>
+    </div>
+
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">例题：多项式相加（链表）</h3>
+        <p></p>
+
+
+
+    <ul>
+        <li>循环设计思路
+            <ul>
+                <li>a. 逐对读取（系数, 幂次）
+                <li>b. 将同幂次项累加
+                <li>c. 统一排序
+                <li>d. 最终输出
+            </ul>
+    </ul>
+
+        </div>
+    </div>
+
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">例题：多项式相加（链表）</h3>
+        <p></p>
+
+
+
+    <ul>
+        <li>关键循环拆解
+            <ul>
+                <li>循环1：读取输入（构建结构）
+                <li>循环2：合并同类项（累加）
+                <li>循环3：按幂排序输出
+            </ul>
+        <li>迭代衔接分析 
+            <ul>
+                <li>a. 每次读取后，当前项必须正确加入“已有结果”
+                <li>b. 累加结果必须能被下一次迭代继续使用
+                <li>c. 任意两次迭代之间，状态（当前结果集合）必须一致
+            </ul>
+    </ul>
+
+        </div>
+    </div>
+    
+
+    <div class="slide" data-chapter="c2">
+        <div class="content">
+            <p>代码介绍</p>
+        </div>
+    </div>
+
+    <!-- 大章 3 -->
+    <div class="slide">
+        <div class="content" style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <h1 style="font-size: 3.5rem; text-align: center; border: none; margin: 0;">
+                03 标准模板库：使用与等效<br>
+                <!-- <span style="font-size: 2rem; color: var(--secondary-text); font-weight: normal;">使用与等效</span> -->
+            </h1>
+        </div>
+    </div>
+
+<div class="slide" data-chapter="c3">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">标准模板库：使用与等效</h3>
+        <p>从 map 出发，理解 STL 的本质：用现成结构替代手写循环与状态维护。</p>
+
+<pre><code class="language-cpp">map<int, int> poly;
+poly[exp] += coef;</code></pre>
+
+    <ul>
+        <li>map 做了什么 →
+            <ul>
+                <li>a. 自动查找“是否已有该幂次”
+                <li>b. 自动维护有序性（按 key 排序）
+                <li>c. 自动完成插入 / 更新
+            </ul>
+    </ul>
+
+    </div>
+</div>
+
+<div class="slide" data-chapter="c3">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">标准模板库：使用与等效</h3>
+
+
+    <ul>
+        <li>等效写法（链表版） →
+            <ul>
+                <li>a. 遍历链表找位置
+                <li>b. 判断是否合并
+                <li>c. 手动插入节点
+            </ul>
+        <li>核心对比 →
+            <ul>
+                <li>map = “封装好的循环 + 状态结构”
+                <li>链表 = “手写循环 + 手动维护状态”
+            </ul>
+    </ul>
+
+    </div>
+</div>
+<div class="slide" data-chapter="c3">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">标准模板库：使用与等效</h3>
+
+    <ul>
+        <li>STL 的本质是“常见模式的抽象”
+                <li>帮你保证每次操作后状态始终正确
+
+        <li>使用原则:
+            <ul>
+                <li>能用 STL → 优先用（减少错误）
+                <li>需要控制细节 → 自己实现（链表/数组）
+            </ul>
+    </ul>
+
+    </div>
+</div>
+
+
+<div class="slide" data-chapter="c3">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">常见 STL 结构：适用场景与核心操作</h3>
+        <p>不同 STL 容器，本质是不同“状态维护方式”的封装。</p>
+
+<pre><code class="language-cpp">// 常见 STL 示例
+vector<int> v;
+map<int, int> m;
+unordered_map<int, int> um;
+set<int> s;
+queue<int> q;
+stack<int> st;</code></pre>
+
+    </div>
+</div>
+
+<div class="slide" data-chapter="c3">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">常见 STL 结构：适用场景与核心操作</h3>
+        <p></p>
+
+<pre><code class="language-cpp">// 常见 STL 示例
+vector<int> v;
+map<int, int> m;
+unordered_map<int, int> um;
+set<int> s;
+queue<int> q;
+stack<int> st;</code></pre>
+
+    <ul>
+        <li>1.	vector（动态数组） →
+            <ul>
+                <li>适用：顺序存储、频繁访问
+                <li>核心操作：push_back(), pop_back(), size(), []
+            </ul>
+    </ul>
+
+</div></div>
+<div class="slide" data-chapter="c3">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">常见 STL 结构：适用场景与核心操作</h3>
+        <p></p>
+
+    <ul>
+        <li>2.	map（有序键值对） →
+            <ul>
+                <li>适用：需要排序 + 查找 + 统计
+                <li>核心操作：m[key], insert(), find(), erase()
+            </ul>
+        <li>3.	unordered_map（哈希表） →
+            <ul>
+                <li>适用：快速查找（不关心顺序）
+                <li>核心操作：um[key], insert(), find(), erase()
+            </ul>
+    </ul>
+
+    </div>
+</div>
+<div class="slide" data-chapter="c2">
+    <div class="content">
+        <h3 style="color: var(--primary-color);">常见 STL 结构：适用场景与核心操作</h3>
+ 
+
+    <ul>
+        <li>4.	stack（栈） →
+            <ul>
+                <li>适用：后进先出（递归、括号匹配）
+                <li>核心操作：push(), pop(), top()
+            </ul>
+        <li>5.	queue（队列） →
+            <ul>
+                <li>适用：先进先出（层序遍历、调度）
+                <li>核心操作：push(), pop(), front()
+            </ul>
+    </ul>
+
+    </div>
+</div>
+    <div class="slide" data-chapter="c3">
+        <div class="content">
+        <h3 style="color: var(--primary-color);">常见 STL 结构：适用场景与核心操作</h3>
+            <p></p>
+            
+        <ul>
+        <li>6.	set（有序去重） →
+            <ul>
+                <li>适用：去重 + 自动排序
+                <li>核心操作：insert(), erase(), find()
+            </ul>
+                <li>vector → 顺序状态
+                <li>map / set → 有序状态
+                <li>unordered_map → 哈希状态
+                <li>stack / queue → 受限访问状态
+            </ul>
+        </div>
+    </div>
+
+
+    <!-- 大章 4 -->
+    <div class="slide">
+        <div class="content" style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <h1 style="font-size: 3.5rem; text-align: center; border: none; margin: 0;">
+                04 例题选讲：<br>
+                <span style="font-size: 2rem; color: var(--secondary-text); font-weight: normal;">从算法原理开始</span>
+            </h1>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>子串查找：快慢指针</p> 
+            <div style="text-align: center;"> <!-- 加上这层可以居中图片 -->
+                <img src="lec2/substrfind.png" alt="示意图" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
+
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>子串查找：快慢指针</p> 
+            <pre><code class="language-cpp">while (i < s.size() && j < t.size()) {
+            if (s[i] == t[j]) {
+                i++; // 匹配成功，移动 s 指针
+            }
+            j++; // t 总是向前
+        }
+
+if (i == s.size()) cout << "Yes" << endl;
+else cout << "No" << endl;
+
+            </code></pre>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>滑动窗口：单调队列</p> 
+            <div style="text-align: center;"> <!-- 加上这层可以居中图片 -->
+                <img src="lec2/window.png" alt="示意图" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
+
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>滑动窗口：单调队列</p> 
+            <pre><code class="language-cpp">//此处展示降序优先队列，维护最大值
+for (int i = 0; i < n; i++) {
+    // 1. 移除窗口外的元素
+    if (!dq.empty() && dq.front() <= i - k) {
+        dq.pop_front();
+    }
+
+    // 2. 维护单调递减（小的全部弹掉）
+    while (!dq.empty() && A[dq.back()] < A[i]) {
+        dq.pop_back();
+    }
+
+    // 3. 加入当前元素
+    dq.push_back(i);
+    ...
+}
+            </code></pre>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>滑动窗口：单调队列</p> 
+            <div style="text-align: center;"> <!-- 加上这层可以居中图片 -->
+                <img src="lec2/poly.png" alt="示意图" style="max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 8px;">
+            </div>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>多项式运算与输出：有序链表的维护</p> 
+            <pre><code class="language-cpp">Poly createPolynomial() {
+    Poly head = new Node{0, 0, nullptr}; // 头结点
+    Node* tail = head;
+    int coef, exp;
+    while (cin >> coef >> exp) {
+        if (coef == 0 && exp == 0) break;
+        Node* p = new Node{exp, coef, nullptr};
+        tail->next = p;
+        tail = p;
+    }
+    return head;
+}</code></pre>
+            <pre><code class="language-cpp">void printPolynomial(const Poly &P) {
+    Node* cur = P->next;
+    bool first = true;
+    while (cur) {
+        if (cur->coef > 0 && !first) cout << "+";
+        if (cur->exp == 0) cout << cur->coef;
+        else if (cur->exp == 1) cout << cur->coef << "x";
+        else cout << cur->coef << "x^" << cur->exp;
+        first = false;
+        cur = cur->next;
+    }
+    cout << endl;
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>多项式运算与输出：有序链表的维护</p> 
+            <pre><code class="language-cpp">Poly add(const Poly &A, const Poly &B) {
+    Poly head = new Node{0, 0, nullptr};
+    Node* tail = head;
+    Node* p = A->next;
+    Node* q = B->next;
+    while (p && q) {
+        if (p->exp > q->exp) {
+            tail->next = new Node{p->exp, p->coef, nullptr};
+            p = p->next;
+        } else if (p->exp < q->exp) {
+            tail->next = new Node{q->exp, q->coef, nullptr};
+            q = q->next;
+        } else { // 指数相同
+            int sum = p->coef + q->coef;
+            if (sum != 0) tail->next = new Node{p->exp, sum, nullptr};
+            p = p->next;
+            q = q->next;
+        }
+        if (tail->next) tail = tail->next;
+    }
+    while (p) { tail->next = new Node{p->exp, p->coef, nullptr}; tail = tail->next; p = p->next; }
+    while (q) { tail->next = new Node{q->exp, q->coef, nullptr}; tail = tail->next; q = q->next; }
+    return head;
+}
+            </code></pre>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>多项式运算与输出：有序链表的维护</p> 
+            <pre><code class="language-cpp">Poly mul(const Poly &A, const Poly &B) {
+    Poly result = new Node{0, 0, nullptr};
+    for (Node* p = A->next; p; p = p->next) {
+        for (Node* q = B->next; q; q = q->next) {
+            int e = p->exp + q->exp;
+            int c = p->coef * q->coef;
+            // 插入到result中（按指数降序）
+            Node* prev = result;
+            Node* cur = result->next;
+            while (cur && cur->exp > e) { prev = cur; cur = cur->next; }
+            if (cur && cur->exp == e) { // 已存在指数
+                cur->coef += c;
+                if (cur->coef == 0) { // 系数为0就删除节点
+                    prev->next = cur->next;
+                    delete cur;
+                }
+            } else { // 插入新节点
+                Node* newNode = new Node{e, c, cur};
+                prev->next = newNode;
+            }
+        }
+    }
+    return result;
+}</code></pre>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>模式匹配：KMP</p> 
+            <pre><code class="language-cpp">vector<int> buildNext(const string &P) {
+    int m = P.size();
+    vector<int> next(m, 0);
+    int j = 0; // 当前匹配长度
+
+    for (int i = 1; i < m; ++i) {
+        while (j > 0 && P[i] != P[j]) {
+            j = next[j-1]; // 回退状态
+        }
+        if (P[i] == P[j]) j++;
+        next[i] = j; // 更新状态
+    }
+    return next;
+}</code></pre>
+        </div>
+    </div>
+    <div class="slide" data-chapter="c4">
+        <div class="content">
+            <p>模式匹配：KMP</p> 
+            <pre><code class="language-cpp">vector<int> KMP(const string &T, const string &P) {
+    vector<int> res;
+    vector<int> next = buildNext(P);
+    int n = T.size(), m = P.size();
+    int j = 0; // 当前匹配长度
+
+    for (int i = 0; i < n; ++i) {
+        while (j > 0 && T[i] != P[j]) j = next[j-1];
+        if (T[i] == P[j]) j++;
+        if (j == m) {
+            res.push_back(i - m + 1); // 匹配成功
+            j = next[j-1]; // 状态衔接，继续寻找下一个
+        }
+    }
+    return res;
+}</code></pre>
+        </div>
+    </div>
+
+
+    <!-- 大章 5 -->
+    <div class="slide">
+        <div class="content" style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <h1 style="font-size: 3.5rem; text-align: center; border: none; margin: 0;">05 课后练习</h1>
+        </div>
+    </div>
+
+    <div class="slide" data-chapter="c5">
+        <div class="content">
+            <p>前缀表达式、中缀表达式、后缀表达式的转换</p>
+        </div>
+    </div>
+
+
+    <!-- Outro -->
+    <div class="slide">
+        <div class="content" style="display: flex; justify-content: center; align-items: center; height: 100%;">
+            <h1 style="font-size: 3.5rem; text-align: center; border: none; margin: 0;">课后说明</h1>
+        </div>
+    </div>
+
+    <div class="slide">
+        <h2>致谢</h2>
+        <div class="content" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+            <p style="margin-top: 50px; font-size: 2.5rem; color: var(--primary-color); font-weight: bold;">
+                Thanks!
+            </p>
+            <p style="color: var(--secondary-text);">Mar.2026</p>
+        </div>
+    </div>
+
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progress"></div>
+    </div>
+
+    <div class="controls" style="visibility: visible;">
+        <button id="prevBtn" disabled>上一页</button>
+        <button id="nextBtn">下一页</button>
+    </div>
+</div>
+
+<script>
+    // === 【大标题变量配置】===
+    // 这里就是所有的标题文本变量，修改此处的文本，会自动更新下面所有带 data-chapter 对应标记的幻灯片
+    const chapterTitles = {
+    "c0": "回顾",
+    "c1": "01 从说人话开始：结构分析与最小动作",
+    "c2": "02 转译的损耗：常见理解歧义",
+    "c3": "03 标准模板库：使用与等效",
+    "c4": "04 例题选讲：",
+    "c5": "05 课后练习："
+};
+
+    // 页面加载时：自动为对应小节注入大标题
+    document.querySelectorAll('.slide[data-chapter]').forEach(slide => {
+        const cId = slide.getAttribute('data-chapter');
+        if (chapterTitles[cId]) {
+            const h2 = document.createElement('h2');
+            h2.textContent = chapterTitles[cId];
+            
+            const contentDiv = slide.querySelector('.content');
+            if (contentDiv) {
+                slide.insertBefore(h2, contentDiv);
+            } else {
+                slide.prepend(h2);
+            }
+        }
+    });
+
+
+    const slides = document.querySelectorAll('.slide');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const progress = document.getElementById('progress');
+    // 从 URL 的 Hash 中读取当前所在页码，实现刷新后留在当前页
+    let currentSlide = parseInt(window.location.hash.substring(1)) || 0;
+    
+    // 确保从hash读取的值不会越界
+    if (currentSlide < 0) currentSlide = 0;
+    if (currentSlide >= slides.length) currentSlide = slides.length - 1;
+
+    function updateSlide() {
+        slides.forEach((slide, index) => {
+            slide.classList.toggle('active', index === currentSlide);
+        });
+
+        // 每次更新时推掉地址栏，以保存状态
+        window.history.replaceState(null, null, '#' + currentSlide);
+
+        // 更新按钮状态
+        prevBtn.disabled = currentSlide === 0;
+        nextBtn.disabled = currentSlide === slides.length - 1;
+
+        // 更新进度条
+        const percent = ((currentSlide + 1) / slides.length) * 100;
+        progress.style.width = percent + '%';
+    }
+    
+    // 初始化调用一次以确保第一页逻辑或哈希恢复
+    updateSlide();
+
+    prevBtn.addEventListener('click', () => {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateSlide();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentSlide < slides.length - 1) {
+            currentSlide++;
+            updateSlide();
+        }
+    });
+
+    // 进度条拖拽与跳转功能
+    const progressContainer = document.getElementById('progressContainer');
+    let isDragging = false;
+
+    function goToFraction(e) {
+        if (!progressContainer) return;
+        const rect = progressContainer.getBoundingClientRect();
+        let pos = e.clientX - rect.left;
+        pos = Math.max(0, Math.min(pos, rect.width));
+        let index = Math.floor((pos / rect.width) * slides.length);
+        if (index >= slides.length) index = slides.length - 1;
+        currentSlide = index;
+        updateSlide();
+    }
+
+    progressContainer.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        goToFraction(e);
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) goToFraction(e);
+    });
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+
+    // 触控板或鼠标滚轮翻页
+    let isScrolling = false;
+    window.addEventListener('wheel', (e) => {
+        if (isScrolling) return;
+        if (Math.abs(e.deltaX) > 20 || Math.abs(e.deltaY) > 20) {
+            isScrolling = true;
+            if (e.deltaX > 0 || e.deltaY > 0) {
+                if (currentSlide < slides.length - 1) {
+                    currentSlide++;
+                    updateSlide();
+                }
+            } else {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    updateSlide();
+                }
+            }
+            setTimeout(() => isScrolling = false, 300); // 避免一次滚去多页
+        }
+    }, {passive: true});
+
+    // 键盘支持
+    const prevKeys = ['ArrowLeft', 'ArrowUp', 'PageUp', 'Enter', 'w', 'a'];
+    const nextKeys = ['ArrowRight', 'ArrowDown', 'PageDown', ' ', 's', 'd'];
+    
+    document.addEventListener('keydown', (e) => {
+        if (prevKeys.includes(e.key)) {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        } else if (nextKeys.includes(e.key)) {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
